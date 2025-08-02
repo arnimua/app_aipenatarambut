@@ -99,7 +99,7 @@
                             </div>
                             <div class="bg-slate-800 p-4 rounded-lg border border-slate-700">
                                 <div class="flex items-center gap-3">
-                                    <div class="bg-fuchsia-500/20 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-fuchsia-400"><path d="M12 3c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5zM6.4 6.4c.2-.2.5-.2.7 0l2.1 2.1c.2.2.2.5 0 .7s-.5.2-.7 0L6.4 7.1c-.2-.2-.2-.5 0-.7zM3 12c0-.3.2-.5.5-.5h3c.3 0 .5.2.5.5s-.2.5-.5.5h-3c-.3 0-.5-.2-.5-.5zM6.4 17.6c-.2.2-.2.5 0 .7l2.1 2.1c.2.2.5.2.7 0s.2-.5 0-.7l-2.1-2.1c-.2-.2-.5-.2-.7 0zM12 21c-.3 0-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5s.5.2.5.5v3c0 .3-.2.5-.5.5zM17.6 17.6c.2-.2.5-.2.7 0l2.1-2.1c.2-.2.2-.5 0-.7s-.5-.2-.7 0l-2.1 2.1c-.2.2-.2-.5 0 .7zM21 12c0 .3-.2.5-.5.5h-3c-.3 0-.5-.2-.5-.5s.2-.5.5-.5h3c.3 0 .5.2.5.5zM17.6 6.4c.2.2.5.2.7 0l-2.1-2.1c-.2-.2-.5-.2-.7 0s-.2.5 0 .7l2.1 2.1c.2.2.2.5 0 .7z"/></svg></div>
+                                    <div class="bg-fuchsia-500/20 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-fuchsia-400"><path d="M12 3c.3 0 .5.2.5.5v3c0 .3-.2.5-.5.5s-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5zM6.4 6.4c.2-.2.5-.2.7 0l2.1 2.1c.2.2.2.5 0 .7s-.5.2-.7 0L6.4 7.1c-.2-.2-.2-.5 0-.7zM3 12c0-.3.2-.5.5-.5h3c.3 0 .5.2.5.5s-.2.5-.5.5h-3c-.3 0-.5-.2-.5-.5zM6.4 17.6c-.2.2-.2.5 0 .7l2.1 2.1c.2.2.5.2.7 0s.2-.5 0-.7l-2.1-2.1c-.2-.2-.5-.2-.7 0zM12 21c-.3 0-.5-.2-.5-.5v-3c0-.3.2-.5.5-.5s.5.2.5.5v3c0 .3-.2-.5-.5.5zM17.6 17.6c.2-.2.5-.2.7 0l2.1-2.1c.2-.2.2-.5 0-.7s-.5-.2-.7 0l-2.1 2.1c-.2.2-.2-.5 0 .7zM21 12c0 .3-.2.5-.5.5h-3c-.3 0-.5-.2-.5-.5s.2-.5.5-.5h3c.3 0 .5.2.5.5zM17.6 6.4c.2.2.5.2.7 0l-2.1-2.1c-.2-.2-.5-.2-.7 0s-.2.5 0 .7l2.1 2.1c.2.2.2.5 0 .7z"/></svg></div>
                                     <h3 class="font-semibold text-white">3. Dapatkan Hasil</h3>
                                 </div>
                                 <p class="text-slate-400 text-sm mt-2">Lihat beberapa rekomendasi gaya rambut yang dibuat khusus untuk Anda.</p>
@@ -196,6 +196,7 @@
 
                     <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                         <button id="startOverButton" class="bg-slate-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-500 transition-all">Mulai Lagi</button>
+                        <button id="getMoreButton" class="hidden bg-sky-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-sky-500 transition-all">Dapatkan Rekomendasi Lain</button>
                     </div>
                 </div>
             </div>
@@ -234,6 +235,7 @@
             let apiKey = ''; // Start with empty API key
             let capturedImageBase64 = null;
             let cameraStream = null;
+            let allRecommendations = []; // To store recommendations and avoid duplicates
 
             // --- DOM Element Selection ---
             const mainContent = document.getElementById('main-content');
@@ -275,6 +277,7 @@
             const faceShapeAnalysisDiv = document.getElementById('face-shape-analysis');
             const recommendationGrid = document.getElementById('recommendation-grid');
             const startOverButton = document.getElementById('startOverButton');
+            const getMoreButton = document.getElementById('getMoreButton');
             const loadingRecommendationsOverlay = document.getElementById('loading-recommendations-overlay');
 
             // Modals & Overlays
@@ -288,9 +291,6 @@
 
             // --- Core Functions ---
 
-            /**
-             * Merender layar yang sesuai berdasarkan state `currentStep`.
-             */
             function renderScreen() {
                 Object.values(screens).forEach(screen => screen.classList.add('hidden'));
                 if (screens[currentStep]) {
@@ -299,48 +299,27 @@
                 }
             }
             
-            /**
-             * Menampilkan atau menyembunyikan overlay loading global.
-             * @param {boolean} show - Tampilkan (true) atau sembunyikan (false).
-             * @param {string} text - Teks yang ditampilkan saat loading.
-             */
             function toggleLoading(show, text = 'Menganalisis...') {
                 loadingText.textContent = text;
                 loadingOverlay.classList.toggle('hidden', !show);
             }
 
-            /**
-             * Menampilkan pesan error di layar upload.
-             * @param {string} message - Pesan error yang akan ditampilkan.
-             */
             function showError(message) {
                 errorText.textContent = message;
                 errorMessage.classList.remove('hidden');
             }
             
-            /**
-             * Menampilkan pesan error pada form API key.
-             * @param {string} message - Pesan error.
-             */
             function showApiKeyError(message) {
                 apiKeyError.textContent = message;
                 apiKeyError.classList.remove('hidden');
             }
 
-            /**
-             * Mengonversi data base64 menjadi blob (tidak diperlukan untuk Gemini, tapi praktik yang baik).
-             * @param {string} base64 - String data base64.
-             * @returns {string} - Hanya mengembalikan bagian data base64.
-             */
             function cleanBase64(base64) {
                 return base64.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
             }
 
             // --- Camera Logic ---
             
-            /**
-             * Memulai kamera dan menampilkan feed video.
-             */
             async function startCamera() {
                 try {
                     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
@@ -353,9 +332,6 @@
                 }
             }
 
-            /**
-             * Menghentikan stream kamera.
-             */
             function stopCamera() {
                 if (cameraStream) {
                     cameraStream.getTracks().forEach(track => track.stop());
@@ -365,9 +341,6 @@
                 cameraView.classList.add('hidden');
             }
 
-            /**
-             * Mengambil gambar dari feed video dan menyimpannya sebagai base64.
-             */
             function takePicture() {
                 const context = canvas.getContext('2d');
                 canvas.width = videoFeed.videoWidth;
@@ -383,11 +356,6 @@
 
             // --- Gemini API Interaction ---
 
-            /**
-             * Memvalidasi API key dengan melakukan panggilan tes.
-             * @param {string} keyToTest - API key yang akan divalidasi.
-             * @returns {Promise<boolean>} - True jika valid, false jika tidak.
-             */
             async function validateApiKey(keyToTest) {
                 if (!keyToTest) return false;
                 const validationUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${keyToTest}`;
@@ -404,55 +372,68 @@
                 }
             }
             
-            /**
-             * Mengirim permintaan ke Gemini AI untuk mendapatkan rekomendasi.
-             */
-            async function getHairRecommendations() {
+            async function getHairRecommendations(isGettingMore = false) {
                 if (!capturedImageBase64 || !apiKey) {
                     alert("Terjadi kesalahan: Gambar atau API key tidak ditemukan.");
                     return;
                 }
 
-                toggleLoading(true, 'AI sedang menganalisis foto Anda...');
+                if (isGettingMore) {
+                    loadingRecommendationsOverlay.classList.remove('hidden');
+                } else {
+                    toggleLoading(true, 'AI sedang menganalisis foto Anda...');
+                }
 
                 const age = ageInput.value || 'tidak disebutkan';
                 const occupation = occupationInput.value || 'tidak disebutkan';
 
-                const prompt = `Anda adalah seorang penata rambut AI profesional dan ahli fashion. Tugas Anda adalah menganalisis foto wajah seseorang dan memberikan rekomendasi gaya rambut yang cocok.
+                let previousRecommendationsText = '';
+                if (isGettingMore && allRecommendations.length > 0) {
+                    const previousNames = allRecommendations.map(r => r.name).join(', ');
+                    previousRecommendationsText = `You have already recommended the following styles: ${previousNames}. Please provide completely new and different recommendations.`;
+                }
 
-                **Konteks Pengguna:**
-                - Usia: ${age}
-                - Pekerjaan/Gaya Hidup: ${occupation}
+                const prompt = `
+                    You are an expert virtual hairstylist and facial analyst. Your task is to analyze the provided user image and suggest hairstyles.
 
-                **Instruksi:**
-                1.  Analisis bentuk wajah dari gambar yang diberikan.
-                2.  Berdasarkan bentuk wajah, usia, dan gaya hidup, berikan 3 (tiga) rekomendasi gaya rambut yang berbeda.
-                3.  Untuk setiap rekomendasi, berikan detail dalam format yang diminta. Tingkat kesulitan harus 'Mudah', 'Menengah', atau 'Sulit'.
-                4.  Pastikan deskripsi dan tips perawatan ditulis dengan gaya yang membantu dan informatif.
+                    Follow these steps precisely:
+                    1.  Examine the image to determine if it contains a clear, front-facing human face.
+                    2.  If a face is visible, set 'isFace' to true and proceed. If not, set 'isFace' to false and the other fields to "N/A" or empty arrays.
+                    3.  Analyze the geometry of the face to determine its shape (e.g., Oval, Round, Square).
+                    4.  Take into account the user's details: age is ${age}, occupation is '${occupation}'.
+                    5.  Provide hairstyle recommendations categorized into "Solid Cut", "Graduation Cut", "Layered Cut", and "Design Cut".
+                    6.  For each recommendation, provide its name, a personalized reason, an 'imageSearchQuery', a 'difficulty' level ('Mudah', 'Sedang', or 'Sulit'), and practical 'careTips'.
+                    ${previousRecommendationsText ? `7.  ${previousRecommendationsText}` : ''}
+                    ${previousRecommendationsText ? '8' : '7'}. Return the complete analysis strictly in the provided JSON format below. Do not add any text before or after the JSON object.
 
-                **Format Output (WAJIB):**
-                Kembalikan JAWABAN HANYA SEBAGAI JSON yang valid tanpa teks atau markdown tambahan di awal atau akhir. JSON harus berupa sebuah objek tunggal dengan dua kunci: "analisisWajah" dan "rekomendasi".
-
-                Contoh struktur JSON yang harus dikembalikan:
-                {
-                  "analisisWajah": "Berdasarkan analisis, bentuk wajah Anda cenderung Oval. Bentuk ini sangat serbaguna dan cocok dengan berbagai gaya rambut.",
-                  "rekomendasi": [
+                    JSON Output Structure:
                     {
-                      "judul": "Potongan Klasik",
-                      "subJudul": "Classic Taper with Side Part",
-                      "tingkatKesulitan": "Mudah",
-                      "deskripsi": "Gaya rambut ini klasik, rapi, dan sangat mudah diatur. Cocok untuk lingkungan profesional maupun kasual. Memberikan kesan dewasa dan terstruktur.",
-                      "tipsPerawatan": ["Gunakan pomade ringan untuk menata.", "Potong rambut setiap 3-4 minggu untuk menjaga kerapian.", "Mudah dikeringkan dengan handuk."]
-                    },
-                    {
-                      "judul": "Gaya Modern",
-                      "subJudul": "Textured Crop",
-                      "tingkatKesulitan": "Menengah",
-                      "deskripsi": "Potongan modern yang memberikan banyak tekstur dan volume di bagian atas. Memberikan tampilan yang lebih santai namun tetap stylish.",
-                      "tipsPerawatan": ["Gunakan clay atau wax untuk menciptakan tekstur.", "Blow dry dengan jari untuk menambah volume.", "Cocok untuk Anda yang aktif."]
+                      "isFace": true,
+                      "faceShapeAnalysis": {
+                        "shape": "Oval",
+                        "description": "Indonesian description of the face shape."
+                      },
+                      "recommendations": {
+                        "Solid Cut": [
+                          {
+                            "name": "Classic Bob",
+                            "reason": "Indonesian reason why this style is suitable.",
+                            "imageSearchQuery": "classic bob hairstyle",
+                            "difficulty": "Mudah",
+                            "careTips": ["Indonesian care tip 1", "Indonesian care tip 2"]
+                          }
+                        ],
+                        "Graduation Cut": [],
+                        "Layered Cut": [],
+                        "Design Cut": []
+                      }
                     }
-                  ]
-                }`;
+
+                    IMPORTANT LANGUAGE INSTRUCTION:
+                    - The values for 'description', 'reason', and 'careTips' MUST be in Indonesian.
+                    - The values for 'shape', 'name', and 'imageSearchQuery' MUST be in English.
+                    - The value for 'difficulty' MUST be one of: 'Mudah', 'Sedang', 'Sulit'.
+                `;
 
                 const payload = {
                     contents: [{
@@ -465,7 +446,10 @@
                                 }
                             }
                         ]
-                    }]
+                    }],
+                    "generationConfig": {
+                        "responseMimeType": "application/json",
+                    }
                 };
 
                 try {
@@ -481,82 +465,102 @@
                     }
 
                     const data = await response.json();
-                    const responseText = data.candidates[0].content.parts[0].text;
+                    const resultData = JSON.parse(data.candidates[0].content.parts[0].text);
                     
-                    let resultData;
-                    try {
-                        resultData = JSON.parse(responseText);
-                    } catch (e) {
-                         console.log("Gagal parse JSON secara langsung, mencoba ekstraksi...");
-                         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-                         if (jsonMatch) {
-                             resultData = JSON.parse(jsonMatch[0]);
-                         } else {
-                             throw new Error("Respons AI tidak mengandung JSON yang valid.");
-                         }
-                    }
-                    
-                    displayResults(resultData);
+                    displayResults(resultData, !isGettingMore);
 
                 } catch (error) {
                     console.error('Error calling Gemini API:', error);
                     alert(`Terjadi kesalahan saat menghubungi AI: ${error.message}. Pastikan API Key Anda benar dan coba lagi.`);
-                    currentStep = 'welcome';
-                    renderScreen();
+                    if (!isGettingMore) {
+                        currentStep = 'welcome';
+                        renderScreen();
+                    }
                 } finally {
-                    toggleLoading(false);
+                    if (isGettingMore) {
+                        loadingRecommendationsOverlay.classList.add('hidden');
+                    } else {
+                        toggleLoading(false);
+                    }
                 }
             }
             
-            /**
-             * Menampilkan hasil analisis dan rekomendasi di UI.
-             * @param {object} data - Objek hasil dari Gemini.
-             */
-            function displayResults(data) {
-                if (!data || !data.rekomendasi || !data.analisisWajah) {
-                    alert("Format respons dari AI tidak sesuai. Coba lagi.");
-                    currentStep = 'welcome';
+            function displayResults(data, isNewRequest = true) {
+                if (data.isFace === false) {
+                    alert("Wajah tidak terdeteksi pada gambar. Silakan coba lagi dengan foto yang lebih jelas.");
+                    currentStep = 'imageUploader';
                     renderScreen();
                     return;
                 }
 
-                faceShapeAnalysisDiv.innerHTML = `<p class="max-w-2xl mx-auto">${data.analisisWajah}</p>`;
-                recommendationGrid.innerHTML = '';
+                if (isNewRequest) {
+                    // Defensive check to prevent crash
+                    if (data.faceShapeAnalysis && data.faceShapeAnalysis.shape && data.faceShapeAnalysis.description) {
+                        faceShapeAnalysisDiv.innerHTML = `<h3 class="text-xl font-bold text-white mb-2">${data.faceShapeAnalysis.shape}</h3><p class="max-w-2xl mx-auto">${data.faceShapeAnalysis.description}</p>`;
+                    } else {
+                        faceShapeAnalysisDiv.innerHTML = `<p class="max-w-2xl mx-auto">Analisis bentuk wajah tidak dapat ditampilkan saat ini.</p>`;
+                        console.error("Received data is missing 'faceShapeAnalysis' structure:", data);
+                    }
+                    recommendationGrid.innerHTML = '';
+                    allRecommendations = []; // Reset state
+                }
 
-                data.rekomendasi.forEach((rec, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'recommendation-card bg-slate-800 p-6 rounded-lg border-l-4 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl';
-                    card.style.animation = `fadeIn 0.5s ease-out ${index * 0.15}s forwards`;
+                const recommendations = data.recommendations;
+                if (!recommendations) {
+                    console.error("No 'recommendations' object in the response:", data);
+                    return; // Exit if there are no recommendations
+                }
 
-                    const difficultyColors = { 'Mudah': 'border-green-400', 'Menengah': 'border-yellow-400', 'Sulit': 'border-red-400' };
-                    const difficultyBadgeColors = { 'Mudah': 'bg-green-500/20 text-green-400', 'Menengah': 'bg-yellow-500/20 text-yellow-400', 'Sulit': 'bg-red-500/20 text-red-400' };
+                for (const category in recommendations) {
+                    if (recommendations[category] && recommendations[category].length > 0) {
+                        let categoryId = `category-${category.replace(/\s+/g, '-')}`;
+                        let categoryHeader = recommendationGrid.querySelector(`#${categoryId}`);
+                        if (!categoryHeader) {
+                            categoryHeader = document.createElement('div');
+                            categoryHeader.id = categoryId;
+                            categoryHeader.className = 'md:col-span-2 text-2xl font-bold text-sky-300 mt-6 mb-2 pt-4 border-t border-slate-700';
+                            categoryHeader.textContent = category;
+                            recommendationGrid.appendChild(categoryHeader);
+                        }
 
-                    card.classList.add(difficultyColors[rec.tingkatKesulitan] || 'border-slate-600');
+                        recommendations[category].forEach((rec, index) => {
+                            allRecommendations.push(rec);
 
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h4 class="text-sm text-slate-400">${rec.judul}</h4>
-                                <h3 class="text-xl font-bold text-white">${rec.subJudul}</h3>
-                            </div>
-                            <span class="text-xs font-semibold px-3 py-1 rounded-full ${difficultyBadgeColors[rec.tingkatKesulitan] || 'bg-slate-700'}">${rec.tingkatKesulitan}</span>
-                        </div>
-                        <p class="text-slate-300 mb-4">${rec.deskripsi}</p>
-                        <div>
-                            <h5 class="font-semibold mb-2 text-white">Tips Perawatan:</h5>
-                            <ul class="list-disc list-inside text-slate-400 space-y-1 text-sm">
-                                ${rec.tipsPerawatan.map(tip => `<li>${tip}</li>`).join('')}
-                            </ul>
-                        </div>
-                        <div class="mt-6 text-right">
-                            <button class="view-example-btn text-sm font-semibold text-sky-400 hover:text-sky-300" data-hairstyle="${rec.subJudul}">
-                                Lihat Contoh Gambar &rarr;
-                            </button>
-                        </div>
-                    `;
-                    recommendationGrid.appendChild(card);
-                });
+                            const card = document.createElement('div');
+                            card.className = 'recommendation-card bg-slate-800 p-6 rounded-lg border-l-4 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl';
+                            card.style.animation = `fadeIn 0.5s ease-out ${index * 0.15}s forwards`;
 
+                            const difficultyColors = { 'Mudah': 'border-green-400', 'Sedang': 'border-yellow-400', 'Sulit': 'border-red-400' };
+                            const difficultyBadgeColors = { 'Mudah': 'bg-green-500/20 text-green-400', 'Sedang': 'bg-yellow-500/20 text-yellow-400', 'Sulit': 'bg-red-500/20 text-red-400' };
+
+                            card.classList.add(difficultyColors[rec.difficulty] || 'border-slate-600');
+
+                            card.innerHTML = `
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 class="text-xl font-bold text-white">${rec.name}</h3>
+                                    </div>
+                                    <span class="text-xs font-semibold px-3 py-1 rounded-full ${difficultyBadgeColors[rec.difficulty] || 'bg-slate-700'}">${rec.difficulty}</span>
+                                </div>
+                                <p class="text-slate-300 mb-4 italic">"${rec.reason}"</p>
+                                <div>
+                                    <h5 class="font-semibold mb-2 text-white">Tips Perawatan:</h5>
+                                    <ul class="list-disc list-inside text-slate-400 space-y-1 text-sm">
+                                        ${rec.careTips.map(tip => `<li>${tip}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="mt-6 text-right">
+                                    <button class="view-example-btn text-sm font-semibold text-sky-400 hover:text-sky-300" data-hairstyle="${rec.imageSearchQuery}">
+                                        Lihat Contoh Gambar &rarr;
+                                    </button>
+                                </div>
+                            `;
+                            recommendationGrid.appendChild(card);
+                        });
+                    }
+                }
+
+                getMoreButton.classList.remove('hidden');
                 currentStep = 'analysisResult';
                 renderScreen();
             }
@@ -598,22 +602,28 @@
 
             userInfoForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                getHairRecommendations();
+                getHairRecommendations(false);
             });
 
             startOverButton.addEventListener('click', () => {
                 capturedImageBase64 = null;
                 ageInput.value = '';
                 occupationInput.value = '';
+                allRecommendations = [];
+                getMoreButton.classList.add('hidden');
                 currentStep = 'welcome';
                 renderScreen();
+            });
+            
+            getMoreButton.addEventListener('click', () => {
+                getHairRecommendations(true);
             });
             
             recommendationGrid.addEventListener('click', (e) => {
                 if (e.target.classList.contains('view-example-btn')) {
                     const hairstyle = e.target.dataset.hairstyle;
                     hairstyleNameSpan.textContent = hairstyle;
-                    modalConfirm.href = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(hairstyle + ' hairstyle')}`;
+                    modalConfirm.href = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(hairstyle)}`;
                     imageExampleModal.classList.remove('hidden');
                 }
             });
